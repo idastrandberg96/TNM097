@@ -66,6 +66,8 @@ plot(wavelength, DLP(:,3), 'blue');
 load('RGB_raw.mat');
 load('xyz.mat')
 load('XYZ_ref.mat')
+load('illum.mat')
+load('chips20')
 
 S_rgb = DLP * RGB_raw;
 
@@ -101,15 +103,49 @@ max_e_cal = max(delta_cal)
 % Normalization factor
 k = 100./sum(CIED65'.*xyz(:,2));
 
-A_crt = DLP' * xyz;
+A_crt = xyz' *DLP;
 
 A_crt_norm = A_crt*k;
 
-%% 3.2 Skippis tills vi f�r hj�lpis
+%% 3.2 
+load('XYZ_est')
+D_prim = inv(A_crt_norm)*XYZ_est;
+
+% Detta går också. Står att det är bättre än inv.
+%D_prim_1 = A_crt_norm\XYZ_est;
+k = 100./sum(CIED65'.*xyz(:,2));
+
+S_rgb_res = DLP * D_prim;
+
+XYZ_Srgb_res = k*S_rgb_res'*xyz;
+
+D_prim_res = delta_E(XYZ_Srgb_res, XYZ_ref);
+
+mean_e_D = mean(D_prim_res)
+max_e_D = max(D_prim_res)
+
 
 %% 3.3 
-
+plot(D_prim); %Har negativt värde.
+figure
 %% 3.4
+
+%D_prim_scale = rescale(D_prim); Sätter högasta värdet till 1?
+
+D_prim(D_prim > 1.0) = 1.0;
+D_prim(D_prim < 0) = 0;
+
+
+S_rgb_scale = DLP * D_prim;
+
+XYZ_Srgb_scale = k*S_rgb_scale'*xyz;
+
+D_prim_scale_res = delta_E(XYZ_Srgb_scale, XYZ_ref);
+
+mean_e_D = mean(D_prim_scale_res)
+max_e_D = max(D_prim_scale_res)
+
+
 
 %% 3.5
 
@@ -118,4 +154,14 @@ plot_chrom_sRGB(A_crt_norm)
 % Pretty bad
 
 %% 3.6
+
+color_sample =  (chips20.*CIED65);
+deltis = delta_E(color_sample, XYZ_ref);
+
+[minimum, index] = min(deltis)
+
+plot(400:5:700,S_rgb_scale(:,8))
+hold on
+plot(400:5:700,color_sample(8,:), '--');
+
 
